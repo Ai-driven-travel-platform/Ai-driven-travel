@@ -2,8 +2,16 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from .models import UserProfile, BusinessOwnerProfile
+import re
 
 User = get_user_model()
+
+# Custom password validation regex
+PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&+=!]).{8,}$'
+PASSWORD_ERROR_MSG = (
+    "Password must be at least 8 characters long, contain at least one uppercase letter, "
+    "one lowercase letter, one digit, and one special character (@#$%^&+=!)."
+)
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
@@ -38,6 +46,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'password2': {'write_only': True}
         }
 
+    def validate_password(self, value):
+        # Apply Django's built-in password validation
+        validate_password(value, user=self.instance)
+        # Apply custom regex validation
+        if not re.match(PASSWORD_REGEX, value):
+            raise serializers.ValidationError(PASSWORD_ERROR_MSG)
+        return value
+
     def validate(self, data):
         if data['password'] != data['password2']:
             raise serializers.ValidationError("Passwords don't match")
@@ -64,6 +80,14 @@ class PasswordChangeSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True, write_only=True)
     new_password2 = serializers.CharField(required=True, write_only=True)
 
+    def validate_new_password(self, value):
+        # Apply Django's built-in password validation
+        validate_password(value, user=self.context['request'].user)
+        # Apply custom regex validation
+        if not re.match(PASSWORD_REGEX, value):
+            raise serializers.ValidationError(PASSWORD_ERROR_MSG)
+        return value
+
     def validate(self, data):
         if data['new_password'] != data['new_password2']:
             raise serializers.ValidationError("New passwords don't match")
@@ -73,10 +97,6 @@ class PasswordChangeSerializer(serializers.Serializer):
         user = self.context['request'].user
         if not user.check_password(value):
             raise serializers.ValidationError("Old password is incorrect")
-        return value
-
-    def validate_new_password(self, value):
-        validate_password(value)
         return value
 
 class EmailChangeSerializer(serializers.Serializer):
@@ -156,14 +176,18 @@ class ResetPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True, write_only=True)
     new_password2 = serializers.CharField(required=True, write_only=True)
 
+    def validate_new_password(self, value):
+        # Apply Django's built-in password validation
+        validate_password(value)
+        # Apply custom regex validation
+        if not re.match(PASSWORD_REGEX, value):
+            raise serializers.ValidationError(PASSWORD_ERROR_MSG)
+        return value
+
     def validate(self, data):
         if data['new_password'] != data['new_password2']:
             raise serializers.ValidationError("Passwords don't match")
         return data
-
-    def validate_new_password(self, value):
-        validate_password(value)
-        return value
 
 class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)

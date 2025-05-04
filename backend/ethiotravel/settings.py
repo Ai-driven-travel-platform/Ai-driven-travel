@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'ethiotravel.wsgi.application'
 # PostgreSQL configuration
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgresql://postgres:beinghuman@localhost:5432/ethiotravel')
+        default=os.getenv('DATABASE_URL', 'postgresql://postgres:1234@localhost:5432/ethiotravel')
     )
 }
 
