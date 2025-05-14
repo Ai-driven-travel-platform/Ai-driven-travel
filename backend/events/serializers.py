@@ -95,3 +95,12 @@ class EventSubscriptionSerializer(serializers.ModelSerializer):
         model = EventSubscription
         fields = ['id', 'email', 'categories', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def validate_categories(self, value):
+        valid_categories = [choice[0] for choice in Event.CATEGORY_CHOICES]
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Categories must be a list")
+        for category in value:
+            if category not in valid_categories:
+                raise serializers.ValidationError(f"Invalid category: {category}. Valid categories are: {', '.join(valid_categories)}")
+        return value
