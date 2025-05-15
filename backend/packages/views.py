@@ -29,9 +29,10 @@ class PackageViewSet(viewsets.ModelViewSet):
         return PackageSerializer
 
     def get_queryset(self):
-        if self.action == 'list':
-            return self.queryset.filter(status='active')
-        return self.queryset
+        queryset = self.queryset
+        if self.action == 'list' and 'status' not in self.request.query_params:
+            queryset = queryset.filter(status='active')
+        return queryset
 
     @swagger_auto_schema(
         tags=['Tour Packages'],
