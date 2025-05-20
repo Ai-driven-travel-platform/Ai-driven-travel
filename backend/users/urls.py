@@ -9,8 +9,8 @@ app_name = 'users'
 
 # Create a router and register our viewsets with it
 router = DefaultRouter()
-router.register(r'', UserViewSet, basename='user')
 router.register(r'profiles', ProfileViewSet, basename='profile')
+router.register(r'', UserViewSet, basename='user')
 router.register(r'business-profiles', BusinessProfileViewSet, basename='business-profile')
 
 # The API URLs are determined by explicit URL patterns

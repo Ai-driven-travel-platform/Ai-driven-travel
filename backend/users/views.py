@@ -19,7 +19,7 @@ from .serializers import (
     EmailVerificationSerializer, ForgotPasswordSerializer,
     ResetPasswordSerializer, ResendVerificationSerializer
 )
-from .permissions import IsOwnerOrReadOnly
+from .permissions import IsOwnerOrReadOnly, IsOwnerOrAdmin
 import logging
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -749,7 +749,14 @@ class UserViewSet(viewsets.ModelViewSet):
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated, IsOwnerOrAdmin]
+
+    def get_queryset(self):
+        # If user is admin, return all profiles
+        if self.request.user.is_staff:
+            return UserProfile.objects.all()
+        # Otherwise, return only the user's profile
+        return UserProfile.objects.filter(user=self.request.user)
 
     @swagger_auto_schema(
         tags=['Users'],
@@ -761,6 +768,8 @@ class ProfileViewSet(viewsets.ModelViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
+        # Set the user field to the current user
+        request.data['user'] = request.user.id
         return super().create(request, *args, **kwargs)
 
     @swagger_auto_schema(
@@ -795,7 +804,26 @@ class ProfileViewSet(viewsets.ModelViewSet):
         }
     )
     def update(self, request, *args, **kwargs):
+        # Ensure the user field cannot be changed
+        if 'user' in request.data:
+            request.data.pop('user')
         return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        tags=['Users'],
+        operation_description="Partially update user profile",
+        request_body=ProfileSerializer,
+        responses={
+            200: ProfileSerializer,
+            400: "Bad Request",
+            404: "Not Found"
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        # Ensure the user field cannot be changed
+        if 'user' in request.data:
+            request.data.pop('user')
+        return super().partial_update(request, *args, **kwargs)
 
 class BusinessProfileViewSet(viewsets.ModelViewSet):
     queryset = BusinessOwnerProfile.objects.all()

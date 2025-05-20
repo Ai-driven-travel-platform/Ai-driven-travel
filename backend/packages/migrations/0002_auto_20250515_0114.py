@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='package',
             name='organizer',
-            field=models.ForeignKey(default='967315d1-ead0-4cdf-b4f2-9b5945a5ccf2', on_delete=django.db.models.deletion.CASCADE, related_name='packages', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='packages', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AlterField(
             model_name='departure',
@@ -110,7 +110,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='packagereview',
             name='user',
-            field=models.ForeignKey(default='967315d1-ead0-4cdf-b4f2-9b5945a5ccf2', on_delete=django.db.models.deletion.CASCADE, related_name='package_reviews', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='package_reviews', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AlterField(
             model_name='savedpackage',
@@ -120,6 +120,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='savedpackage',
             name='user',
-            field=models.ForeignKey(default='967315d1-ead0-4cdf-b4f2-9b5945a5ccf2', on_delete=django.db.models.deletion.CASCADE, related_name='saved_packages', to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='saved_packages', to=settings.AUTH_USER_MODEL),
         ),
     ]
