@@ -81,71 +81,71 @@ export function Navbar() {
           <nav className="hidden md:flex md:items-center md:justify-center md:flex-1 md:space-x-8">
             {isUserAuthenticated ? (
               navItems.map((item) =>
-                item.items ? (
-                  <DropdownMenu
-                    key={item.name}
-                    open={isExploreOpen}
-                    onOpenChange={setIsExploreOpen}
-                  >
-                    <DropdownMenuTrigger asChild>
-                      <div
-                        className={cn(
-                          "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary cursor-pointer group",
-                          item.items.some((subItem) => pathname === subItem.href)
-                            ? "text-primary"
-                            : "text-secondary",
-                        )}
+              item.items ? (
+                <DropdownMenu
+                  key={item.name}
+                  open={isExploreOpen}
+                  onOpenChange={setIsExploreOpen}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className={cn(
+                        "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary cursor-pointer group",
+                        item.items.some((subItem) => pathname === subItem.href)
+                          ? "text-primary"
+                          : "text-secondary",
+                      )}
                         onMouseEnter={() => setIsExploreOpen(true)}
                         onMouseLeave={() => setIsExploreOpen(false)}
-                      >
-                        {item.name}
-                        <span
-                          className={cn(
-                            "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
-                            item.items.some((subItem) => pathname === subItem.href)
-                              ? "w-full"
-                              : "w-0 group-hover:w-full",
-                          )}
-                        />
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="center"
-                      className="bg-white border border-gray-200 shadow-lg rounded-md p-2"
+                    >
+                      {item.name}
+                      <span
+                        className={cn(
+                          "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
+                          item.items.some((subItem) => pathname === subItem.href)
+                            ? "w-full"
+                            : "w-0 group-hover:w-full",
+                        )}
+                      />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="center"
+                    className="bg-white border border-gray-200 shadow-lg rounded-md p-2"
                       onMouseEnter={() => setIsExploreOpen(true)}
                       onMouseLeave={() => setIsExploreOpen(false)}
-                    >
-                      {item.items.map((subItem) => (
-                        <DropdownMenuItem
-                          key={subItem.name}
-                          asChild
-                          className="hover:bg-gray-100 text-gray-700 rounded-sm"
-                        >
-                          <Link href={subItem.href} onClick={() => handleNavigation(subItem.href)}>
-                            {subItem.name}
-                          </Link>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary group",
-                      pathname === item.href ? "text-primary" : "text-secondary",
-                    )}
                   >
-                    {item.name}
-                    <span
-                      className={cn(
-                        "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
-                        pathname === item.href ? "w-full" : "w-0 group-hover:w-full",
-                      )}
-                    />
-                  </Link>
-                )
+                    {item.items.map((subItem) => (
+                      <DropdownMenuItem
+                        key={subItem.name}
+                        asChild
+                        className="hover:bg-gray-100 text-gray-700 rounded-sm"
+                      >
+                        <Link href={subItem.href} onClick={() => handleNavigation(subItem.href)}>
+                          {subItem.name}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary group",
+                    pathname === item.href ? "text-primary" : "text-secondary",
+                  )}
+                >
+                  {item.name}
+                  <span
+                    className={cn(
+                      "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
+                      pathname === item.href ? "w-full" : "w-0 group-hover:w-full",
+                    )}
+                  />
+                </Link>
+              )
               )
             ) : null}
           </nav>

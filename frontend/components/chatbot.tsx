@@ -308,8 +308,23 @@ export function Chatbot() {
           error.message.includes("Conversation not found") ||
           error.message.includes("belongs to another user")
         ) {
+          // Clear invalid session and start new conversation
           localStorage.removeItem("chat_session_id")
           setSessionId(null)
+          setMessages([
+            {
+              id: Date.now(),
+              content: "**Welcome back!**\n\nLet's start a new conversation. How can I help you plan your Ethiopian adventure today?",
+              sender: "bot",
+              created_at: new Date().toISOString(),
+            },
+          ])
+          setQuickReplies([
+            { id: "destinations", text: "Popular destinations" },
+            { id: "tours", text: "Tour packages" },
+            { id: "accommodation", text: "Find accommodation" },
+            { id: "transport", text: "Transportation options" },
+          ])
         }
       }
     }
