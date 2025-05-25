@@ -101,8 +101,8 @@ export default function AboutPage() {
                       <div className="relative mx-auto w-24 h-24 mb-4">
                         <div className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-opacity-20"></div>
                         <div
-                          className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-l-transparent"
-                          style={{ transform: "rotate(45deg)" }}
+                          className="absolute inset-0 rounded-full border-4 border-[#E91E63]"
+                          style={{ transform: "rotate(0deg)" }}
                         ></div>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <span className="text-[#E91E63] font-bold">100%</span>
@@ -115,8 +115,8 @@ export default function AboutPage() {
                       <div className="relative mx-auto w-24 h-24 mb-4">
                         <div className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-opacity-20"></div>
                         <div
-                          className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-l-transparent border-b-transparent"
-                          style={{ transform: "rotate(45deg)" }}
+                          className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-l-transparent"
+                          style={{ transform: "rotate(270deg)" }}
                         ></div>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <span className="text-[#E91E63] font-bold">75%</span>
@@ -129,8 +129,8 @@ export default function AboutPage() {
                       <div className="relative mx-auto w-24 h-24 mb-4">
                         <div className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-opacity-20"></div>
                         <div
-                          className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-r-transparent border-t-transparent border-l-transparent"
-                          style={{ transform: "rotate(45deg)" }}
+                          className="absolute inset-0 rounded-full border-4 border-[#E91E63] border-l-transparent"
+                          style={{ transform: "rotate(306deg)" }}
                         ></div>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <span className="text-[#E91E63] font-bold">85%</span>
@@ -140,11 +140,11 @@ export default function AboutPage() {
                     </div>
                   </div>
 
-                  <div className="mt-8">
+                  {/* <div className="mt-8">
                     <Link href="#" className="text-[#E91E63] font-medium hover:underline">
                       Explore more
                     </Link>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>

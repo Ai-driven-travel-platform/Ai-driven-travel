@@ -54,13 +54,13 @@ export function CTASection() {
           <Button onClick={handleSignUp} className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-8 py-6 rounded-full">
             Sign Up Now
           </Button>
-          <Button
+          {/* <Button
             onClick={handleExploreHomepage}
             variant="outline"
             className="border border-[#E91E63] text-[#E91E63] hover:bg-[#E91E63] hover:text-white px-8 py-6 rounded-full transition-colors"
           >
             Explore Homepage
-          </Button>
+          </Button> */}
         </motion.div>
       </div>
     </motion.section>

@@ -236,6 +236,8 @@ export default function LoginPage() {
                 Sign in with Google
               </Button>
             </div>
+
+            
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">

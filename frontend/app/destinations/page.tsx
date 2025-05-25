@@ -19,13 +19,14 @@ export default function DestinationsPage() {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const categories = ["All", "Historical", "Natural", "Cultural", "Religious", "Urban"]
+  const categories = ["All", "Historical", "Natural", "Cultural", "Religious", "Adventure", "Beach"]
   const categoryMapping: Record<string, string> = {
     Historical: "historical",
     Natural: "natural",
     Cultural: "cultural",
     Religious: "religious",
-    Urban: "urban",
+    Adventure: "adventure",
+    Beach: "beach"
   }
 
   // Fetch destinations

@@ -23,9 +23,13 @@ interface Post {
 
 interface LatestPostsProps {
   posts: Post[]
+  currentPage: number
+  hasMore: boolean
+  onPageChange: (page: number) => void
+  totalPages?: number
 }
 
-export function LatestPosts({ posts }: LatestPostsProps) {
+export function LatestPosts({ posts, currentPage, hasMore, onPageChange, totalPages = 1 }: LatestPostsProps) {
   if (!posts || posts.length === 0) {
     return null
   }
@@ -63,11 +67,25 @@ export function LatestPosts({ posts }: LatestPostsProps) {
         </div>
 
         <div className="flex justify-center mt-8">
-          <Link href="/blog/latest">
-            <Button variant="outline" className="rounded-full px-8">
-              Load More
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              className="rounded-full px-4"
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
             </Button>
-          </Link>
+            <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+            <Button 
+              variant="outline" 
+              className="rounded-full px-4"
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={!hasMore}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     </ClientOnly>

@@ -3,11 +3,11 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Chatbot } from "@/components/chatbot"
 import { Suspense } from "react"
+import { LayoutWrapper } from "@/components/layout-wrapper"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,14 +27,13 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <div className="flex min-h-screen flex-col">
+            <LayoutWrapper>
               <Navbar />
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
                 <main className="flex-1">{children}</main>
               </Suspense>
-              <Footer />
               <Chatbot />
-            </div>
+            </LayoutWrapper>
           </ThemeProvider>
         </AuthProvider>
       </body>

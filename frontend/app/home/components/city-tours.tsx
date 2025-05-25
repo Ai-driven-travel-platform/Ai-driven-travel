@@ -43,7 +43,7 @@ export const CityTours = () => {
               View package
             </button>
 
-            <div className="grid grid-cols-2 gap-4 mt-8">
+            <div className="grid grid-cols-2 gap-4 mt-20">
               {cityImages.map((item, index) => (
                 <motion.div
                   key={index}
@@ -69,6 +69,10 @@ export const CityTours = () => {
               ))}
             </div>
           </motion.div>
+
+
+
+
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -77,10 +81,10 @@ export const CityTours = () => {
             className="md:w-1/2 md:pl-12"
           >
             <div className="relative">
-              <div className="absolute -left-4 top-1/2 transform -translate-y-1/2 bg-[#E91E63] text-white px-2 py-8 rounded-r-md flex flex-col items-center space-y-4 text-xs font-medium z-10">
-                <span className="m-1 transform -rotate-90">EVENTS</span>
-                <span className=" m-1 transform -rotate-90">HIKING</span>
-                <span className="transform -rotate-90">CITY TOURS</span>
+              <div className="absolute -left-4 top-1/2 pt-20 pb-20 transform -translate-y-1/2 bg-[#E91E63]  text-white px-2 py-8 rounded-r-md flex flex-col items-center space-y-4 text-xs font-medium z-10">
+                {/* <span className="m-1 transform -rotate-90">EVENTS</span>
+                <span className=" m-1 transform -rotate-90">HIKING</span> */}
+                <span className="transform -rotate-90 ">CITY TOURS</span>
               </div>
               <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
                 <NextImage

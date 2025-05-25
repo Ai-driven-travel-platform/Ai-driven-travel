@@ -16,15 +16,21 @@ import { getBlogPosts, getFeaturedBlogPosts, getBlogCategories } from "@/app/act
 import { useEffect, useState } from "react"
 
 function BlogPageContent() {
-  const [postsData, setPostsData] = useState<any>({ results: [] })
+  const [postsData, setPostsData] = useState<any>({ 
+    count: 0,
+    next: null,
+    previous: null,
+    results: [] 
+  })
   const [featuredPostsData, setFeaturedPostsData] = useState<any[]>([])
   const [categoriesData, setCategoriesData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const posts = await getBlogPosts()
+        const posts = await getBlogPosts(currentPage)
         const featured = await getFeaturedBlogPosts()
         const categories = await getBlogCategories()
 
@@ -39,7 +45,11 @@ function BlogPageContent() {
     }
 
     fetchData()
-  }, [])
+  }, [currentPage])
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   if (loading) {
     return (
@@ -155,7 +165,13 @@ function BlogPageContent() {
             <HeroSection featuredPost={featuredPost} />
             <SearchFilter categories={categoriesData.map((cat) => cat.name)} />
             <FeaturedPosts posts={otherFeaturedPosts} />
-            <LatestPosts posts={latestPosts} />
+            <LatestPosts 
+              posts={latestPosts} 
+              currentPage={currentPage}
+              hasMore={!!postsData.next}
+              onPageChange={handlePageChange}
+              totalPages={Math.ceil(postsData.count / 6)}
+            />
             {/* <CreatePostCTA /> */}
             {/* <CategorySection
               categories={categoriesData.map((cat) => ({

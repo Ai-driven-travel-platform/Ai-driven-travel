@@ -11,10 +11,12 @@ import { AITravelSection } from "./components/ai-travel-section"
 import { TestimonialsSection } from "./components/testimonials-section"
 import { CTASection } from "./components/cta-section"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
 
 export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     // Simulate loading time
@@ -24,6 +26,13 @@ export default function LandingPage() {
 
     return () => clearTimeout(timer)
   }, [])
+
+  // Redirect to home if user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/home")
+    }
+  }, [isAuthenticated, router])
 
   if (isLoading) {
     return (

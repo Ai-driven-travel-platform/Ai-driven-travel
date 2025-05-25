@@ -30,7 +30,7 @@ export const PopularPackages = () => {
   }, [])
 
   const handleReadMore = () => {
-    router.push("/destinations/danakil-depression")
+    router.push("/blog")
   }
 
   const handleCreateTrip = () => {
@@ -112,9 +112,9 @@ export const PopularPackages = () => {
           transition={{ duration: 0.5 }}
           className="mt-16 relative border-t border-b py-8"
         >
-          <div className="absolute -left-4 bottom-0">
+          {/* <div className="absolute -left-4 ml-10  bottom-0">
             <NextImage src="/assets/ethio_shell.jpg" alt="Shell Decoration" width={100} height={100} />
-          </div>
+          </div> */}
 
           <div className="border-2 border-dashed border-[#E91E63] rounded-lg p-8 text-center max-w-3xl mx-auto relative hover:border-solid transition-all duration-300">
             <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -131,8 +131,8 @@ export const PopularPackages = () => {
               <NextImage
                 src="/assets/travel4.jpg"
                 alt="Travel Photos"
-                width={150}
-                height={150}
+                width={100}
+                height={100}
                 className="transform hover:rotate-3 transition-transform duration-300"
               />
             </div>
@@ -154,11 +154,11 @@ export const PopularPackages = () => {
           transition={{ duration: 0.5 }}
           className="mt-16 text-center"
         >
-          <h2 className="text-2xl font-bold mb-4 text-[#0D2B3E]">
+          {/* <h2 className="text-2xl font-bold mb-4 text-[#0D2B3E]">
             Want to build your package?
             <br />
             but don't know how use our special
-          </h2>
+          </h2> */}
 
           {/* <button
             className="mt-4 bg-[#E91E63] text-white px-6 py-3 rounded-full hover:bg-[#D81B60] transform hover:scale-105 transition-all duration-300"

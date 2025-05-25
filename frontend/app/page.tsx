@@ -6,12 +6,7 @@ import LandingPageContent from "./landingpage/page"
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
-      <section className="py-12 md:py-16">
-        <Container>
-          {/* Hero Section */}
-          <LandingPageContent />
-        </Container>
-      </section>
+      <LandingPageContent />
     </div>
   )
 }

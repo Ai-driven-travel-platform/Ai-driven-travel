@@ -79,73 +79,75 @@ export function Navbar() {
 
           {/* Centered Navigation */}
           <nav className="hidden md:flex md:items-center md:justify-center md:flex-1 md:space-x-8">
-            {navItems.map((item) =>
-              item.items ? (
-                <DropdownMenu
-                  key={item.name}
-                  open={isExploreOpen}
-                  onOpenChange={setIsExploreOpen}
-                >
-                  <DropdownMenuTrigger asChild>
-                    <div
-                      className={cn(
-                        "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary cursor-pointer group",
-                        item.items.some((subItem) => pathname === subItem.href)
-                          ? "text-primary"
-                          : "text-secondary",
-                      )}
-                      onMouseEnter={() => setIsExploreOpen(true)} // Open on hover
-                      onMouseLeave={() => setIsExploreOpen(false)} // Close on hover out
-                    >
-                      {item.name}
-                      <span
-                        className={cn(
-                          "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
-                          item.items.some((subItem) => pathname === subItem.href)
-                            ? "w-full"
-                            : "w-0 group-hover:w-full",
-                        )}
-                      />
-                    </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="center"
-                    className="bg-white border border-gray-200 shadow-lg rounded-md p-2"
-                    onMouseEnter={() => setIsExploreOpen(true)} // Keep open on content hover
-                    onMouseLeave={() => setIsExploreOpen(false)} // Close on content hover out
+            {isUserAuthenticated ? (
+              navItems.map((item) =>
+                item.items ? (
+                  <DropdownMenu
+                    key={item.name}
+                    open={isExploreOpen}
+                    onOpenChange={setIsExploreOpen}
                   >
-                    {item.items.map((subItem) => (
-                      <DropdownMenuItem
-                        key={subItem.name}
-                        asChild
-                        className="hover:bg-gray-100 text-gray-700 rounded-sm"
+                    <DropdownMenuTrigger asChild>
+                      <div
+                        className={cn(
+                          "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary cursor-pointer group",
+                          item.items.some((subItem) => pathname === subItem.href)
+                            ? "text-primary"
+                            : "text-secondary",
+                        )}
+                        onMouseEnter={() => setIsExploreOpen(true)}
+                        onMouseLeave={() => setIsExploreOpen(false)}
                       >
-                        <Link href={subItem.href} onClick={() => handleNavigation(subItem.href)}>
-                          {subItem.name}
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary group",
-                    pathname === item.href ? "text-primary" : "text-secondary",
-                  )}
-                >
-                  {item.name}
-                  <span
+                        {item.name}
+                        <span
+                          className={cn(
+                            "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
+                            item.items.some((subItem) => pathname === subItem.href)
+                              ? "w-full"
+                              : "w-0 group-hover:w-full",
+                          )}
+                        />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="center"
+                      className="bg-white border border-gray-200 shadow-lg rounded-md p-2"
+                      onMouseEnter={() => setIsExploreOpen(true)}
+                      onMouseLeave={() => setIsExploreOpen(false)}
+                    >
+                      {item.items.map((subItem) => (
+                        <DropdownMenuItem
+                          key={subItem.name}
+                          asChild
+                          className="hover:bg-gray-100 text-gray-700 rounded-sm"
+                        >
+                          <Link href={subItem.href} onClick={() => handleNavigation(subItem.href)}>
+                            {subItem.name}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Link
+                    key={item.name}
+                    href={item.href}
                     className={cn(
-                      "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
-                      pathname === item.href ? "w-full" : "w-0 group-hover:w-full",
+                      "relative px-1 py-2 text-sm font-semibold transition-colors hover:text-primary group",
+                      pathname === item.href ? "text-primary" : "text-secondary",
                     )}
-                  />
-                </Link>
+                  >
+                    {item.name}
+                    <span
+                      className={cn(
+                        "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
+                        pathname === item.href ? "w-full" : "w-0 group-hover:w-full",
+                      )}
+                    />
+                  </Link>
+                )
               )
-            )}
+            ) : null}
           </nav>
 
           <div className="flex items-center space-x-4">
@@ -193,9 +195,7 @@ export function Navbar() {
                           <img
                             src={user.profile_image || "/placeholder.svg"}
                             alt={user.first_name || user.username}
-                            className="h-full w-full object
-
--cover" />
+                            className="h-full w-full object-cover" />
                         ) : (
                           <ClientOnly>
                             <User className="h-5 w-5" />
@@ -231,12 +231,26 @@ export function Navbar() {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link href="/login">
-                  <Button variant="ghost" className="rounded-full">
+                  <Button 
+                    variant={pathname === "/login" ? "default" : "ghost"} 
+                    className={cn(
+                      "rounded-full",
+                      pathname === "/login" ? "bg-primary text-white" : ""
+                    )}
+                  >
                     Login
                   </Button>
                 </Link>
                 <Link href="/signup">
-                  <Button className="rounded-full">Register</Button>
+                  <Button 
+                    variant={pathname === "/signup" ? "default" : "ghost"}
+                    className={cn(
+                      "rounded-full",
+                      pathname === "/signup" ? "bg-primary text-white" : ""
+                    )}
+                  >
+                    Register
+                  </Button>
                 </Link>
               </div>
             )}
