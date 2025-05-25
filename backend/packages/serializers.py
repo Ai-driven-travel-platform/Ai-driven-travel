@@ -115,8 +115,8 @@ class PackageSerializer(PackageListSerializer):
                 value = data[field].strip() if isinstance(data[field], str) else data[field]
                 if not value:
                     raise serializers.ValidationError({field: _("This field cannot be empty.")})
-                if len(value) > 255:  # Adjust based on model constraints
-                    raise serializers.ValidationError({field: _("This field is too long (max 255 characters).")})
+                # if len(value) > 255:  # Adjust based on model constraints
+                #     raise serializers.ValidationError({field: _("This field is too long (max 255 characters).")})
                 data[field] = value
 
         # Validate and parse coordinates
@@ -130,12 +130,6 @@ class PackageSerializer(PackageListSerializer):
                     data['coordinates'] = [lat, lon]
                 except (ValueError, IndexError):
                     raise serializers.ValidationError({"coordinates": _("Invalid coordinates format. Use 'lat,lon' or 'lat° N, lon° E'.")})
-            if isinstance(data['coordinates'], list) and len(data['coordinates']) == 2:
-                lat, lon = data['coordinates']
-                if not -90 <= lat <= 90:
-                    raise serializers.ValidationError({"coordinates": _("Latitude must be between -90 and 90.")})
-                if not -180 <= lon <= 180:
-                    raise serializers.ValidationError({"coordinates": _("Longitude must be between -180 and 180.")})
 
         # Parse and validate list fields
         list_fields = {
