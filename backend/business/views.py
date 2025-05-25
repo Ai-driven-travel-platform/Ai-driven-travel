@@ -12,10 +12,18 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils import timezone
 from .permissions import IsBusinessOwnerOrReadOnly, IsReviewOwnerOrReadOnly
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Case, When, Value, BooleanField
+
+class BusinessPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class BusinessViewSet(viewsets.ModelViewSet):
     queryset = Business.objects.all()
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsBusinessOwnerOrReadOnly]
+    pagination_class = BusinessPagination
 
     def get_permissions(self):
         if self.action in ['verify', 'toggle_featured']:
@@ -34,6 +42,49 @@ class BusinessViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def get_queryset(self):
+        queryset = Business.objects.all()
+        
+        # Get query parameters
+        search = self.request.query_params.get('search', '').strip()
+        status = self.request.query_params.get('status', '').strip()
+        business_type = self.request.query_params.get('business_type', '').strip()
+        region = self.request.query_params.get('region', '').strip()
+        city = self.request.query_params.get('city', '').strip()
+        order_by = self.request.query_params.get('order_by', '').strip()
+        
+        # Apply search filter
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(description__icontains=search)
+            )
+        print("search term: ",search)
+        # Apply status filter
+        if status:
+            queryset = queryset.filter(status__iexact=status)
+        
+        # Apply business type filter
+        if business_type:
+            queryset = queryset.filter(business_type__iexact=business_type)
+        
+        # Apply region filter
+        if region:
+            queryset = queryset.filter(region__iexact=region)
+        
+        # Apply city filter
+        if city:
+            queryset = queryset.filter(city__iexact=city)
+        
+        # Apply ordering
+        if order_by:
+            if order_by.lower() == 'rating':
+                queryset = queryset.order_by('-average_rating')
+            elif order_by.lower() == 'date':
+                queryset = queryset.order_by('-created_at')
+        
+        return queryset.distinct()
+
     @swagger_auto_schema(
         tags=['Business'],
         operation_description="Create a new business",
@@ -50,21 +101,18 @@ class BusinessViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return Business.objects.none()
-        return super().get_queryset()
-
     @swagger_auto_schema(
         tags=['Business'],
         operation_description="List all businesses",
         manual_parameters=[
-            openapi.Parameter('status', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Filter by status"),
+            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Search by name or description"),
+            openapi.Parameter('status', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Filter by status (pending, approved, rejected)"),
             openapi.Parameter('business_type', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Filter by business type"),
             openapi.Parameter('region', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Filter by region"),
             openapi.Parameter('city', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Filter by city"),
-            openapi.Parameter('search', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Search by name or description"),
-            openapi.Parameter('order_by', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Order by rating or date")
+            openapi.Parameter('order_by', openapi.IN_QUERY, type=openapi.TYPE_STRING, description="Order by rating or date"),
+            openapi.Parameter('page', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description="Page number"),
+            openapi.Parameter('page_size', openapi.IN_QUERY, type=openapi.TYPE_INTEGER, description="Number of results per page")
         ],
         responses={
             200: BusinessListSerializer(many=True)
