@@ -694,7 +694,7 @@ export default function RegisterBusinessPage() {
                     />
                     {formErrors.address && <p className="text-sm text-red-500">{formErrors.address}</p>}
                   </div>
-                  {/* map */}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="latitude">Latitude</Label>

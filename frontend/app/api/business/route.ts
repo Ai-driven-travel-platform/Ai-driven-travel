@@ -4,16 +4,22 @@ import { getBusinesses } from "@/app/actions/business-actions"
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const category = searchParams.get("category") || undefined
+    const search = searchParams.get("search") || undefined
+    const business_type = searchParams.get("business_type") || undefined
     const region = searchParams.get("region") || undefined
     const city = searchParams.get("city") || undefined
-    const query = searchParams.get("query") || undefined
+    const order_by = searchParams.get("order_by") || undefined
+    const page = searchParams.get("page") || undefined
+    const page_size = searchParams.get("page_size") || undefined
 
     const businesses = await getBusinesses({
-      category,
+      search,
+      business_type,
       region,
       city,
-      query,
+      order_by,
+      page,
+      page_size,
     })
 
     return NextResponse.json(businesses)

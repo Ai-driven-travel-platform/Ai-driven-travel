@@ -34,11 +34,19 @@ export interface BusinessData {
   socialMediaLinks?: string
 }
 
+interface ApiResponse {
+  results: BusinessData[]
+  count: number
+}
+
 interface GetBusinessesParams {
-  category?: string
+  search?: string
+  business_type?: string
   region?: string
   city?: string
-  query?: string
+  order_by?: string
+  page?: string
+  page_size?: string
 }
 
 // Helper function to get auth token
@@ -112,13 +120,51 @@ function isValidUrl(string: string): boolean {
 }
 
 // Cache the getBusinesses function to improve performance
-export const getBusinesses = cache(async (params: GetBusinessesParams = {}): Promise<BusinessData[]> => {
+export const getBusinesses = cache(async (params: GetBusinessesParams = {}): Promise<BusinessData[] | ApiResponse> => {
   try {
     console.log("Fetching businesses with params:", params)
     const result = await fetchBusinesses(params)
     if (result.success) {
-      console.log(`Successfully fetched ${result.data.length} businesses`)
-      return result.data.map((business: any) => ({
+      console.log(`Successfully fetched businesses`)
+      const data = result.data
+      
+      // If the API returns paginated data, return it as is
+      if (data && 'results' in data && 'count' in data) {
+        return {
+          results: data.results.map((business: any) => ({
+            id: business.id,
+            businessName: business.name || business.businessName,
+            businessType: business.business_type || business.businessType,
+            description: business.description,
+            region: business.region,
+            city: business.city,
+            address: business.address,
+            phone: business.contact_phone || business.phone,
+            email: business.contact_email || business.email,
+            website: business.website,
+            verified: business.is_verified ?? business.verified,
+            rating: business.rating || Number.parseFloat(business.average_rating) || undefined,
+            mainImage: business.main_image || business.image || business.mainImage,
+            openingHours: business.opening_hours || business.openingHours,
+            facilities: business.facilities,
+            facebook: business.facebook,
+            instagram: business.instagram,
+            galleryImages: business.gallery_images || business.galleryImages,
+            totalReviews: business.total_reviews || business.totalReviews,
+            createdAt: business.created_at || business.createdAt,
+            status: business.status,
+            latitude: business.latitude,
+            longitude: business.longitude,
+            services: business.services,
+            team: business.team,
+            socialMediaLinks: business.social_media_links || business.socialMediaLinks,
+          })),
+          count: data.count
+        }
+      }
+      
+      // If the API returns an array, map it
+      return data.map((business: any) => ({
         id: business.id,
         businessName: business.name || business.businessName,
         businessType: business.business_type || business.businessType,
@@ -154,7 +200,8 @@ export const getBusinesses = cache(async (params: GetBusinessesParams = {}): Pro
   // Reduced timeout for faster response
   await new Promise((resolve) => setTimeout(resolve, 200))
 
-  let mockBusinesses: BusinessData[] = [
+  // Return mock data with pagination structure
+  const mockBusinesses: BusinessData[] = [
     {
       id: "1",
       businessName: "Sheraton Addis",
@@ -299,25 +346,110 @@ export const getBusinesses = cache(async (params: GetBusinessesParams = {}): Pro
       status: "active",
       createdAt: "2023-05-05T18:45:00Z",
     },
+    {
+      id: "9",
+      businessName: "Simien Mountains Lodge",
+      businessType: "Lodge",
+      description: "Mountain lodge offering stunning views and guided treks in the Simien Mountains.",
+      region: "Amhara",
+      city: "Debark",
+      address: "Simien Mountains National Park",
+      phone: "+251 91 789 0123",
+      email: "info@simienlodge.com",
+      website: "www.simienlodge.com",
+      verified: true,
+      rating: 4.7,
+      mainImage: "/placeholder.svg?height=300&width=500&text=Simien+Mountains+Lodge",
+      status: "active",
+      createdAt: "2023-01-20T10:15:00Z",
+    },
+    {
+      id: "10",
+      businessName: "Danakil Desert Tours",
+      businessType: "Tour Operator",
+      description: "Specialized tours to the otherworldly landscapes of the Danakil Depression.",
+      region: "Afar",
+      city: "Mekele",
+      address: "Tourist Street, Mekele",
+      phone: "+251 91 890 1234",
+      email: "info@danakiltours.com",
+      website: "www.danakiltours.com",
+      verified: true,
+      rating: 4.8,
+      mainImage: "/placeholder.svg?height=300&width=500&text=Danakil+Tours",
+      status: "active",
+      createdAt: "2023-04-05T09:30:00Z",
+    },
+    {
+      id: "11",
+      businessName: "Blue Nile Falls Resort",
+      businessType: "Resort",
+      description: "Luxury resort near the spectacular Blue Nile Falls with guided tours and activities.",
+      region: "Amhara",
+      city: "Bahir Dar",
+      address: "Blue Nile Falls Road",
+      phone: "+251 91 901 2345",
+      email: "info@bluenileresort.com",
+      website: "www.bluenileresort.com",
+      verified: true,
+      rating: 4.6,
+      mainImage: "/placeholder.svg?height=300&width=500&text=Blue+Nile+Resort",
+      status: "active",
+      createdAt: "2023-03-10T11:45:00Z",
+    },
+    {
+      id: "12",
+      businessName: "Omo Valley Cultural Tours",
+      businessType: "Tour Operator",
+      description: "Cultural tours to the diverse tribes and traditions of the Omo Valley.",
+      region: "SNNPR",
+      city: "Jinka",
+      address: "Cultural Center Road, Jinka",
+      phone: "+251 91 012 3456",
+      email: "info@omovalleytours.com",
+      website: "www.omovalleytours.com",
+      verified: true,
+      rating: 4.9,
+      mainImage: "/placeholder.svg?height=300&width=500&text=Omo+Valley+Tours",
+      status: "active",
+      createdAt: "2023-02-25T08:15:00Z",
+    }
   ]
 
-  if (params.category) {
-    mockBusinesses = mockBusinesses.filter((business) => business.businessType === params.category)
+  // Apply filters to mock data
+  let filteredBusinesses = [...mockBusinesses]
+  if (params.business_type) {
+    filteredBusinesses = filteredBusinesses.filter((business) => business.businessType === params.business_type)
   }
-
   if (params.region) {
-    mockBusinesses = mockBusinesses.filter((business) => business.region === params.region)
+    filteredBusinesses = filteredBusinesses.filter((business) => business.region === params.region)
   }
-
-  if (params.query) {
-    const query = params.query.toLowerCase()
-    mockBusinesses = mockBusinesses.filter(
+  if (params.search) {
+    const search = params.search.toLowerCase()
+    filteredBusinesses = filteredBusinesses.filter(
       (business) =>
-        business.businessName.toLowerCase().includes(query) || business.description.toLowerCase().includes(query),
+        business.businessName.toLowerCase().includes(search) || business.description.toLowerCase().includes(search),
     )
   }
 
-  return mockBusinesses
+  // Apply sorting if order_by is specified
+  if (params.order_by === 'rating') {
+    filteredBusinesses.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+  } else if (params.order_by === 'date') {
+    filteredBusinesses.sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
+  }
+
+  // Apply pagination to mock data
+  const page = Number(params.page) || 1
+  const pageSize = Number(params.page_size) || 6
+  const startIndex = (page - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedBusinesses = filteredBusinesses.slice(startIndex, endIndex)
+
+  return {
+    results: paginatedBusinesses,
+    count: filteredBusinesses.length
+  }
 })
 
 // Cache the getBusinessById function to improve performance
@@ -980,14 +1112,17 @@ export async function fetchBusinesses(
   try {
     const headers = await buildHeaders()
     const queryParams = new URLSearchParams()
-    if (params.category) queryParams.append("category", params.category)
+    if (params.business_type) queryParams.append("business_type", params.business_type)
     if (params.region) queryParams.append("region", params.region)
     if (params.city) queryParams.append("city", params.city)
-    if (params.query) queryParams.append("query", params.query)
+    if (params.search) queryParams.append("search", params.search)
+    if (params.order_by) queryParams.append("order_by", params.order_by)
+    if (params.page) queryParams.append("page", params.page)
+    if (params.page_size) queryParams.append("page_size", params.page_size)
 
     // Add timeout to prevent long waits
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // Increased timeout to 10 seconds
 
     const response = await fetch(
       `https://ai-driven-travel.onrender.com/api/business/businesses/?${queryParams.toString()}`,
@@ -1012,7 +1147,7 @@ export async function fetchBusinesses(
 
     const data = await response.json()
     console.log("Fetched businesses:", data)
-    return { success: true, data: data.results || data }
+    return { success: true, data }
   } catch (error) {
     console.error("Error fetching businesses:", error)
     return { success: false, error: "An unexpected error occurred" }

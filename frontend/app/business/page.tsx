@@ -7,12 +7,20 @@ import { HeroSection } from "./components/hero-section"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, MapPin, Phone, Star } from "lucide-react"
+import { CheckCircle, MapPin, Phone, Star, Search, Filter } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { getBusinesses } from "@/app/actions/business-actions"
 import type { BusinessData } from "@/app/actions/business-actions"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+
+interface ApiResponse {
+  results: BusinessData[]
+  count: number
+}
 
 // Business Card Component with React.memo for performance
 const BusinessCard = ({ business }: { business: BusinessData }) => {
@@ -137,59 +145,85 @@ const BusinessGrid = ({ businesses, isLoading }: { businesses: BusinessData[]; i
   )
 }
 
-// Pagination Component
-const Pagination = ({
-  currentPage,
-  totalPages,
+// Search and Filter Controls Component
+const SearchAndFilterControls = ({
   queryParams,
+  onSearchChange,
 }: {
-  currentPage: number
-  totalPages: number
   queryParams: Record<string, string>
+  onSearchChange: (params: Record<string, string>) => void
 }) => {
-  if (totalPages <= 1) return null
+  const handleSearchChange = (value: string) => {
+    onSearchChange({ ...queryParams, search: value, page: "1" })
+  }
 
-  const buildQueryString = (page: number) => {
-    const params = new URLSearchParams()
-    Object.entries(queryParams).forEach(([key, value]) => {
-      if (value) params.append(key, value)
-    })
-    params.set("page", page.toString())
-    return params.toString()
+  const handleFilterChange = (key: string, value: string) => {
+    onSearchChange({ ...queryParams, [key]: value, page: "1" })
   }
 
   return (
-    <div className="mt-8 flex justify-center">
-      <nav className="flex items-center space-x-1">
-        <Button variant="outline" size="icon" disabled={currentPage === 1} asChild>
-          <Link href={`/business?${buildQueryString(currentPage - 1)}`}>
-            <span className="sr-only">Previous page</span>
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
-        </Button>
-
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-          <Button
-            key={pageNum}
-            variant={pageNum === currentPage ? "default" : "outline"}
-            className={pageNum === currentPage ? "bg-primary hover:bg-primary/90" : ""}
-            asChild
+    <div className="space-y-4 mb-8">
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search businesses..."
+              value={queryParams.search || ""}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <Select
+            value={queryParams.business_type || "all"}
+            onValueChange={(value) => handleFilterChange("business_type", value === "all" ? "" : value)}
           >
-            <Link href={`/business?${buildQueryString(pageNum)}`}>{pageNum}</Link>
-          </Button>
-        ))}
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Business Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="Restaurant">Restaurant</SelectItem>
+              <SelectItem value="Hotel">Hotel</SelectItem>
+              <SelectItem value="Tour">Tour</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Button variant="outline" size="icon" disabled={currentPage === totalPages} asChild>
-          <Link href={`/business?${buildQueryString(currentPage + 1)}`}>
-            <span className="sr-only">Next page</span>
-            <svg className="h-4 w-4" fill="none" viewBox="0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </Button>
-      </nav>
+          <Select
+            value={queryParams.region || "all"}
+            onValueChange={(value) => handleFilterChange("region", value === "all" ? "" : value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Region" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Regions</SelectItem>
+              <SelectItem value="Addis Ababa">Addis Ababa</SelectItem>
+              <SelectItem value="Oromia">Oromia</SelectItem>
+              <SelectItem value="Amhara">Amhara</SelectItem>
+              <SelectItem value="Tigray">Tigray</SelectItem>
+              <SelectItem value="SNNPR">SNNPR</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={queryParams.order_by || "all"}
+            onValueChange={(value) => handleFilterChange("order_by", value === "all" ? "" : value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Default</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
     </div>
   )
 }
@@ -200,23 +234,29 @@ export default function BusinessDirectoryPage() {
   const [businesses, setBusinesses] = useState<BusinessData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [totalPages, setTotalPages] = useState(1)
 
-  // Extract query parameters
-  const category = searchParams.get("category") || ""
-  const region = searchParams.get("region") || ""
-  const query = searchParams.get("query") || ""
-  const page = Number.parseInt(searchParams.get("page") || "1")
-
-  // Memoize query params to prevent unnecessary re-renders
+  // Extract all query parameters
   const queryParams = useMemo(
     () => ({
-      category,
-      region,
-      query,
-      page: page.toString(),
+      search: searchParams.get("search") || "",
+      business_type: searchParams.get("business_type") || "",
+      region: searchParams.get("region") || "",
+      city: searchParams.get("city") || "",
+      order_by: searchParams.get("order_by") || "",
+      page: searchParams.get("page") || "1",
+      page_size: searchParams.get("page_size") || "9",
     }),
-    [category, region, query, page],
+    [searchParams]
   )
+
+  const handleSearchChange = (newParams: Record<string, string>) => {
+    const params = new URLSearchParams()
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value) params.append(key, value)
+    })
+    router.push(`/business?${params.toString()}`)
+  }
 
   // Fetch businesses with debounce
   useEffect(() => {
@@ -225,15 +265,28 @@ export default function BusinessDirectoryPage() {
       setError(null)
 
       try {
-        // Add a small delay to prevent too many requests during typing
         const result = await getBusinesses({
-          category: queryParams.category,
+          search: queryParams.search,
+          business_type: queryParams.business_type,
           region: queryParams.region,
-          query: queryParams.query,
+          city: queryParams.city,
+          order_by: queryParams.order_by,
+          page: queryParams.page,
+          page_size: queryParams.page_size,
         })
 
-        setBusinesses(result)
-        console.log("Fetched businesses:", result.length)
+        if (result && 'results' in result && 'count' in result) {
+          const apiResponse = result as ApiResponse
+          setBusinesses(apiResponse.results)
+          setTotalPages(Math.ceil(apiResponse.count / Number(queryParams.page_size)))
+        } else if (Array.isArray(result)) {
+          // For mock data
+          setBusinesses(result)
+          setTotalPages(Math.ceil(result.length / Number(queryParams.page_size)))
+        } else {
+          console.error("Unexpected response format:", result)
+          setError("Invalid response format from server")
+        }
       } catch (err) {
         console.error("Error fetching businesses:", err)
         setError("Failed to load businesses. Please try again.")
@@ -242,17 +295,9 @@ export default function BusinessDirectoryPage() {
       }
     }
 
-    // Use a timeout to debounce the API call
     const timeoutId = setTimeout(fetchData, 300)
     return () => clearTimeout(timeoutId)
-  }, [queryParams.category, queryParams.region, queryParams.query])
-
-  // Pagination logic
-  const itemsPerPage = 6
-  const totalPages = Math.max(1, Math.ceil(businesses.length / itemsPerPage))
-  const currentPage = Math.min(Math.max(1, page), totalPages)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedBusinesses = businesses.slice(startIndex, startIndex + itemsPerPage)
+  }, [queryParams])
 
   if (error) {
     return (
@@ -278,9 +323,49 @@ export default function BusinessDirectoryPage() {
             </Link>
           </div>
 
-          <BusinessGrid businesses={paginatedBusinesses} isLoading={isLoading} />
+          <SearchAndFilterControls queryParams={queryParams} onSearchChange={handleSearchChange} />
 
-          <Pagination currentPage={currentPage} totalPages={totalPages} queryParams={queryParams} />
+          <BusinessGrid businesses={businesses} isLoading={isLoading} />
+
+          {/* Pagination */}
+          <div className="mt-8 flex justify-center">
+            <nav className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={Number(queryParams.page) <= 1}
+                onClick={() => handleSearchChange({ ...queryParams, page: String(Number(queryParams.page) - 1) })}
+              >
+                <span className="sr-only">Previous page</span>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === Number(queryParams.page) ? "default" : "outline"}
+                  className={pageNum === Number(queryParams.page) ? "bg-primary hover:bg-primary/90" : ""}
+                  onClick={() => handleSearchChange({ ...queryParams, page: String(pageNum) })}
+                >
+                  {pageNum}
+                </Button>
+              ))}
+
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={Number(queryParams.page) >= totalPages}
+                onClick={() => handleSearchChange({ ...queryParams, page: String(Number(queryParams.page) + 1) })}
+              >
+                <span className="sr-only">Next page</span>
+                <svg className="h-4 w-4" fill="none" viewBox="0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Button>
+            </nav>
+          </div>
         </Container>
       </main>
     </div>
