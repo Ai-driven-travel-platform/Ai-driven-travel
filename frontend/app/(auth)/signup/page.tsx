@@ -276,22 +276,22 @@ export default function SignupPage() {
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="terms"
-              checked={agreeTerms}
-              onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-            />
-            <Label htmlFor="terms" className="text-sm">
-              I agree to the{" "}
-              <Link href="/terms" className="text-[#E91E63] hover:underline">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="text-[#E91E63] hover:underline">
-                Privacy Policy
-              </Link>
-            </Label>
-          </div>
+              <Checkbox
+                id="terms"
+                checked={agreeTerms}
+                onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
+              />
+              <Label htmlFor="terms" className="text-sm">
+                I agree to the{" "}
+                <Link href="/terms" className="text-[#E91E63] hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link href="/privacy" className="text-[#E91E63] hover:underline">
+                  Privacy Policy
+                </Link>
+              </Label>
+            </div>
 
           <Button
             type="submit"

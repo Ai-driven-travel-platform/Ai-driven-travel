@@ -40,6 +40,25 @@ const Map = dynamic(() => import('@/components/map').then((mod) => mod.Map), {
   ),
 })
 
+const startPayment = () => {
+  var myHeaders = new Headers();
+  myHeaders.append("Authorization", "Bearer CHASECK_TEST-j6crqyUVt6jnIMscbzwTxllMZNnYCi5N");
+  myHeaders.append("Content-Type", "application/json");
+  var raw = JSON.stringify({
+    "amount": "10"
+  });
+
+  fetch("https://api.chapa.co/v1/transaction/initialize", {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: myHeaders,
+    body: raw,
+  })
+    .then(response => response.text())
+    .then(result => console.log(result))
+    .catch(error => console.log('the error', error));
+
+}
 export default function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [packageDetail, setPackageDetail] = useState<PackageData | null>(null)
@@ -96,6 +115,8 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
       adults,
       children,
     })
+
+    startPayment()
 
     setBookingSuccess(true)
 

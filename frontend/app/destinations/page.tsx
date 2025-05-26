@@ -126,7 +126,7 @@ export default function DestinationsPage() {
 
             <DestinationGrid destinations={sortedDestinations} isLoading={isLoading} error={error || undefined} />
 
-            <TripPlanner />
+            {/* <TripPlanner /> */}
           </div>
         </Container>
       </main>

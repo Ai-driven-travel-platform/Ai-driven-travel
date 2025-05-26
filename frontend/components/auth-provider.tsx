@@ -54,6 +54,8 @@ const PUBLIC_ROUTES = [
   "/events",
   "/packages",
   "/business",
+  "/privacy",
+  "/terms",
 ]
 
 // List of auth routes that should redirect to home if already authenticated

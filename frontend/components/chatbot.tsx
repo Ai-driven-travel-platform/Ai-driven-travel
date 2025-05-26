@@ -203,7 +203,7 @@ export function Chatbot() {
     setIsTyping(true)
 
     // Initial delay before response
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await new Promise((resolve) => setTimeout(resolve, 150))
 
     try {
       // Handle "Speak to a human" request
@@ -284,7 +284,7 @@ export function Chatbot() {
         const updated = prev.filter((msg) => msg.id !== message.id)
         return [...updated, { ...message, content: currentText.trim() }]
       })
-      await new Promise((resolve) => setTimeout(resolve, 100)) // 100ms delay per word
+      await new Promise((resolve) => setTimeout(resolve, 0)) // 100ms delay per word
     }
     setMessages((prev) => {
       const updated = prev.filter((msg) => msg.id !== message.id)
@@ -485,19 +485,19 @@ export function Chatbot() {
                     {messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className={`mb-4 flex ${
-                          msg.sender === "user" ? "justify-end" : "justify-start"
+                        className={`mb-4 flex  ${
+                          msg.sender === "user" ? "justify-end" : "justify-center"
                         } items-start gap-3 max-w-[85%] ${msg.sender === "user" ? "ml-auto" : "mr-auto"}`}
                       >
                         {msg.sender === "bot" && (
-                          <Avatar className="h-8 w-8 bg-primary text-white shadow-sm mt-1">
-                            <MessageSquare className="h-4 w-4" />
-                          </Avatar>
-                        )}
+                            <Avatar className="h-8 w-8 flex items-center justify-center bg-primary text-white shadow-sm mt-1">
+                              <MessageSquare className="h-4 w-4" />
+                            </Avatar>
+                          )}
                         <div
-                          className={`rounded-lg px-4 py-2 shadow-sm ${
+                          className={`rounded-lg px-4 py-2  shadow-sm ${
                             msg.sender === "user"
-                              ? "bg-primary text-white"
+                              ? "bg-primary  text-white"
                               : "bg-white text-gray-800"
                           }`}
                         >

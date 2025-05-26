@@ -136,12 +136,12 @@ export default function PackagesPage() {
         <div className="relative container mx-auto px-4 h-full flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-white italic mb-8">Travel With Us</h1>
-            <button
+            {/* <button
               onClick={handleSearchClick}
               className="bg-[#E91E63] text-white px-6 py-2 rounded-full hover:bg-[#D81B60] transition-all duration-300"
             >
               SEARCH TOUR
-            </button>
+            </button> */}
           </div>
         </div>
       </section>

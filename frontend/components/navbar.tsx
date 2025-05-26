@@ -29,7 +29,8 @@ export function Navbar() {
   const navItems = [
     { name: "Home", href: "/home" },
     { name: "Destinations", href: "/destinations" },
-    { name: "About", href: "/about" },
+    { name: "Blog", href: "/blog" },
+    
     {
       name: "Explore",
       items: [
@@ -38,7 +39,8 @@ export function Navbar() {
         { name: "Business", href: "/business" },
       ],
     },
-    { name: "Blog", href: "/blog" },
+    { name: "About", href: "/about" },
+    
   ]
 
   const handleNavigation = (href: string) => {
@@ -215,9 +217,9 @@ export function Navbar() {
                     <DropdownMenuItem asChild className="hover:bg-gray-100 text-gray-700 rounded-sm">
                       <Link href="/business/my-business">My Business</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="hover:bg-gray-100 text-gray-700 rounded-sm">
+                    {/* <DropdownMenuItem asChild className="hover:bg-gray-100 text-gray-700 rounded-sm">
                       <Link href="/blog/my-posts">My Blog Posts</Link>
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuSeparator className="bg-gray-200" />
                     <DropdownMenuItem
                       onClick={handleLogout}
