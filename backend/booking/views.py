@@ -10,6 +10,10 @@ from .permissions import IsBookingOwner, IsPaymentOwner, IsReviewOwner
 from .services import StripeService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+import stripe
+from django.http import HttpResponse
 
 class PackageBookingViewSet(viewsets.ModelViewSet):
     serializer_class = PackageBookingSerializer
@@ -45,16 +49,7 @@ class PackageBookingViewSet(viewsets.ModelViewSet):
         responses={
             201: openapi.Response(
                 description="Package booking created successfully",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_OBJECT,
-                    properties={
-                        'id': openapi.Schema(type=openapi.TYPE_STRING, format='uuid', description="Booking ID"),
-                        'package': openapi.Schema(type=openapi.TYPE_INTEGER, description="Package ID"),
-                        'number_of_people': openapi.Schema(type=openapi.TYPE_INTEGER, description="Number of people"),
-                        'special_requests': openapi.Schema(type=openapi.TYPE_STRING, description="Special requests"),
-                        'status': openapi.Schema(type=openapi.TYPE_STRING, description="Booking status")
-                    }
-                )
+                schema=PackageBookingSerializer
             ),
             400: "Bad Request - Invalid data provided",
             401: "Unauthorized - Authentication required"
@@ -64,7 +59,118 @@ class PackageBookingViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         booking = serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        # Create initial payment record
+        payment = PackagePayment.objects.create(
+            booking=booking,
+            amount=booking.package.price * booking.number_of_people,
+            payment_method='stripe',
+            status='pending',
+            currency='usd'
+        )
+        
+        # Create Stripe PaymentIntent
+        try:
+            intent = StripeService.create_payment_intent(
+                amount=payment.amount,
+                currency=payment.currency,
+                metadata={
+                    'booking_id': str(booking.id),
+                    'payment_id': str(payment.id)
+                }
+            )
+            
+            # Update payment with Stripe details
+            payment.stripe_payment_intent_id = intent.id
+            payment.stripe_client_secret = intent.client_secret
+            payment.save()
+            
+            # Add payment details to response
+            response_data = serializer.data
+            response_data['payment'] = {
+                'id': payment.id,
+                'amount': payment.amount,
+                'currency': payment.currency,
+                'client_secret': payment.stripe_client_secret,
+                'status': payment.status
+            }
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            booking.delete()  # Rollback booking if payment creation fails
+            return Response(
+                {'error': f'Failed to create payment: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @swagger_auto_schema(
+        tags=['Package Bookings'],
+        operation_description="Verify payment for a booking",
+        responses={
+            200: openapi.Response(
+                description="Payment verified successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'status': openapi.Schema(type=openapi.TYPE_STRING),
+                        'message': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            400: "Bad Request - Invalid payment",
+            404: "Not Found - Booking does not exist"
+        }
+    )
+    @action(detail=True, methods=['post'])
+    def verify_payment(self, request, pk=None):
+        booking = self.get_object()
+        payment = get_object_or_404(PackagePayment, booking=booking)
+        
+        try:
+            # Verify payment with Stripe
+            intent = StripeService.get_payment_intent(payment.stripe_payment_intent_id)
+            
+            if intent.status == 'succeeded':
+                payment.status = 'succeeded'
+                payment.save()
+                
+                booking.status = 'confirmed'
+                booking.save()
+                
+                return Response({
+                    'status': 'success',
+                    'message': 'Payment verified successfully'
+                })
+            else:
+                return Response({
+                    'status': 'error',
+                    'message': f'Payment not successful. Status: {intent.status}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': f'Failed to verify payment: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        tags=['Package Bookings'],
+        operation_description="Get payment status for a booking",
+        responses={
+            200: openapi.Response(
+                description="Payment status retrieved successfully",
+                schema=PackagePaymentSerializer
+            ),
+            404: "Not Found - Booking does not exist"
+        }
+    )
+    @action(detail=True, methods=['get'])
+    def payment_status(self, request, pk=None):
+        booking = self.get_object()
+        payment = get_object_or_404(PackagePayment, booking=booking)
+        serializer = PackagePaymentSerializer(payment)
+        return Response(serializer.data)
 
     @swagger_auto_schema(
         tags=['Package Bookings'],
@@ -333,3 +439,74 @@ class PackageReviewViewSet(viewsets.ModelViewSet):
         review.reported = True
         review.save()
         return Response({'message': 'Review reported successfully'})
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    event = None
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError:
+        return HttpResponse(status=400)
+
+    # Handle the event
+    if event['type'] == 'payment_intent.succeeded':
+        intent = event['data']['object']
+        payment_intent_id = intent['id']
+        
+        try:
+            payment = PackagePayment.objects.get(stripe_payment_intent_id=payment_intent_id)
+            payment.status = 'succeeded'
+            payment.save()
+            
+            # Update booking status
+            booking = payment.booking
+            booking.status = 'confirmed'
+            booking.save()
+            
+            # You could also send confirmation emails here
+            
+        except PackagePayment.DoesNotExist:
+            pass
+            
+    elif event['type'] == 'payment_intent.payment_failed':
+        intent = event['data']['object']
+        payment_intent_id = intent['id']
+        
+        try:
+            payment = PackagePayment.objects.get(stripe_payment_intent_id=payment_intent_id)
+            payment.status = 'failed'
+            payment.save()
+            
+            # Update booking status
+            booking = payment.booking
+            booking.status = 'cancelled'
+            booking.save()
+            
+        except PackagePayment.DoesNotExist:
+            pass
+            
+    elif event['type'] == 'charge.refunded':
+        charge = event['data']['object']
+        payment_intent_id = charge['payment_intent']
+        
+        try:
+            payment = PackagePayment.objects.get(stripe_payment_intent_id=payment_intent_id)
+            payment.status = 'refunded'
+            payment.save()
+            
+            # Update booking status
+            booking = payment.booking
+            booking.status = 'cancelled'
+            booking.save()
+            
+        except PackagePayment.DoesNotExist:
+            pass
+
+    return HttpResponse(status=200)
