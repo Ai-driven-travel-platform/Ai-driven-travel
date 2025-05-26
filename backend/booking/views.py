@@ -107,6 +107,16 @@ class PackageBookingViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         tags=['Package Bookings'],
         operation_description="Verify payment for a booking",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['payment_intent_id'],
+            properties={
+                'payment_intent_id': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="The Stripe PaymentIntent ID"
+                )
+            }
+        ),
         responses={
             200: openapi.Response(
                 description="Payment verified successfully",
@@ -127,9 +137,17 @@ class PackageBookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         payment = get_object_or_404(PackagePayment, booking=booking)
         
+        payment_intent_id = request.data.get('payment_intent_id')
+        if not payment_intent_id:
+            return Response({
+                'status': 'error',
+                'message': 'Payment intent ID is required',
+                'client_secret': payment.stripe_client_secret
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             # Verify payment with Stripe
-            intent = StripeService.get_payment_intent(payment.stripe_payment_intent_id)
+            intent = StripeService.get_payment_intent(payment_intent_id)
             
             if intent.status == 'succeeded':
                 payment.status = 'succeeded'
@@ -142,16 +160,38 @@ class PackageBookingViewSet(viewsets.ModelViewSet):
                     'status': 'success',
                     'message': 'Payment verified successfully'
                 })
+            elif intent.status == 'requires_payment_method':
+                return Response({
+                    'status': 'error',
+                    'message': 'Please complete the payment first using the client secret',
+                    'client_secret': payment.stripe_client_secret
+                }, status=status.HTTP_400_BAD_REQUEST)
+            elif intent.status == 'requires_confirmation':
+                # Confirm the payment intent
+                intent = StripeService.confirm_payment_intent(payment_intent_id)
+                if intent.status == 'succeeded':
+                    payment.status = 'succeeded'
+                    payment.save()
+                    
+                    booking.status = 'confirmed'
+                    booking.save()
+                    
+                    return Response({
+                        'status': 'success',
+                        'message': 'Payment confirmed and verified successfully'
+                    })
             else:
                 return Response({
                     'status': 'error',
-                    'message': f'Payment not successful. Status: {intent.status}'
+                    'message': f'Payment not successful. Status: {intent.status}',
+                    'client_secret': payment.stripe_client_secret
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:
             return Response({
                 'status': 'error',
-                'message': f'Failed to verify payment: {str(e)}'
+                'message': f'Failed to verify payment: {str(e)}',
+                'client_secret': payment.stripe_client_secret
             }, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
@@ -301,12 +341,11 @@ class PackagePaymentViewSet(viewsets.ModelViewSet):
             properties={
                 'booking_id': openapi.Schema(
                     type=openapi.TYPE_STRING,
-                    format='uuid',
-                    description="The UUID of your package booking"
+                    description="The ID of your package booking"
                 ),
                 'amount': openapi.Schema(
                     type=openapi.TYPE_NUMBER,
-                    description="The amount to charge in the specified currency (e.g., 100.00 for $100)"
+                    description="The amount to charge in the specified currency"
                 ),
                 'currency': openapi.Schema(
                     type=openapi.TYPE_STRING,
@@ -337,7 +376,13 @@ class PackagePaymentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        booking = get_object_or_404(PackageBooking, id=booking_id, user=request.user)
+        try:
+            booking = PackageBooking.objects.get(id=booking_id, user=request.user)
+        except PackageBooking.DoesNotExist:
+            return Response(
+                {'error': 'Booking not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         try:
             # Create Stripe PaymentIntent
@@ -347,16 +392,25 @@ class PackagePaymentViewSet(viewsets.ModelViewSet):
                 metadata={'booking_id': str(booking.id)}
             )
 
-            # Create Payment record
-            payment = PackagePayment.objects.create(
+            # Create or update Payment record
+            payment, created = PackagePayment.objects.get_or_create(
                 booking=booking,
-                amount=amount,
-                payment_method='stripe',
-                status='pending',
-                stripe_payment_intent_id=intent.id,
-                stripe_client_secret=intent.client_secret,
-                currency=currency
+                defaults={
+                    'amount': amount,
+                    'payment_method': 'stripe',
+                    'status': 'pending',
+                    'stripe_payment_intent_id': intent.id,
+                    'stripe_client_secret': intent.client_secret,
+                    'currency': currency
+                }
             )
+
+            if not created:
+                payment.amount = amount
+                payment.stripe_payment_intent_id = intent.id
+                payment.stripe_client_secret = intent.client_secret
+                payment.status = 'pending'
+                payment.save()
 
             serializer = self.get_serializer(payment)
             return Response(serializer.data)
