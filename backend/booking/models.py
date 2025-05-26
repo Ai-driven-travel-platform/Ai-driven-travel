@@ -9,91 +9,67 @@ from packages.models import Package
 
 User = get_user_model()
 
-class Booking(models.Model):
-    STATUS_CHOICES = (
+class PackageBooking(models.Model):
+    STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
-        ('completed', 'Completed'),
-    )
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, null=True, blank=True)
-    business = models.ForeignKey(Business, on_delete=models.CASCADE, null=True, blank=True)
-    package = models.ForeignKey(Package, on_delete=models.CASCADE, null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    number_of_people = models.IntegerField(default=1)
+        ('completed', 'Completed')
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='package_bookings')
+    package = models.ForeignKey(Package, on_delete=models.CASCADE, related_name='bookings')
+    number_of_people = models.PositiveIntegerField()
     special_requests = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        if self.event:
-            return f"{self.user.username}'s booking for {self.event.title}"
-        elif self.business:
-            return f"{self.user.username}'s booking for {self.business.name}"
-        else:
-            return f"{self.user.username}'s booking for {self.package.title}"
-    
-    class Meta:
-        indexes = [
-            models.Index(fields=['user']),
-            models.Index(fields=['event']),
-            models.Index(fields=['business']),
-            models.Index(fields=['package']),
-            models.Index(fields=['status']),
-        ]
 
-class Payment(models.Model):
-    PAYMENT_METHOD_CHOICES = (
-        ('stripe', 'Stripe'),
-        ('chapa', 'Chapa'),
-        ('cash', 'Cash'),
-    )
-    
-    STATUS_CHOICES = (
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Booking {self.id} - {self.package.name}"
+
+class PackagePayment(models.Model):
+    STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
-        ('refunded', 'Refunded'),
-    )
-    
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    transaction_id = models.CharField(max_length=100, blank=True, null=True)
-    payment_details = models.JSONField(default=list, blank=True)  # Updated to use Django's native JSONField
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return f"Payment of {self.amount} for {self.booking}"
-    
-    class Meta:
-        indexes = [
-            models.Index(fields=['booking']),
-            models.Index(fields=['status']),
-            models.Index(fields=['payment_method']),
-        ]
+        ('refunded', 'Refunded')
+    ]
 
-class BookingReview(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='reviews')
-    rating = models.IntegerField()
+    PAYMENT_METHODS = [
+        ('stripe', 'Stripe')
+    ]
+
+    booking = models.OneToOneField(PackageBooking, on_delete=models.CASCADE, related_name='payment')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    transaction_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_client_secret = models.CharField(max_length=255, blank=True, null=True)
+    currency = models.CharField(max_length=3, default='usd')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Payment {self.id} - {self.booking.package.name}"
+
+class PackageReview(models.Model):
+    booking = models.OneToOneField(PackageBooking, on_delete=models.CASCADE, related_name='review')
+    rating = models.PositiveIntegerField()
     title = models.CharField(max_length=200)
     content = models.TextField()
-    helpful = models.IntegerField(default=0)
+    helpful = models.PositiveIntegerField(default=0)
     reported = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return f"{self.booking.user.username}'s review for {self.booking}"
-    
+
     class Meta:
-        indexes = [
-            models.Index(fields=['booking']),
-            models.Index(fields=['rating']),
-        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Review {self.id} - {self.booking.package.name}"

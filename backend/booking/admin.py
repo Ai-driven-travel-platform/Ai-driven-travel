@@ -1,57 +1,23 @@
 from django.contrib import admin
-from .models import Booking, Payment, BookingReview
+from .models import PackageBooking, PackagePayment, PackageReview
 
-@admin.register(Booking)
-class BookingAdmin(admin.ModelAdmin):
-    list_display = ('user', 'event', 'business', 'package', 'status', 'number_of_people', 'created_at', 'updated_at')
-    list_filter = ('status', 'created_at', 'updated_at')
-    search_fields = ('user__email', 'event__title', 'business__name', 'package__title')
+@admin.register(PackageBooking)
+class PackageBookingAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'package', 'number_of_people', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('user__email', 'package__name')
     readonly_fields = ('created_at', 'updated_at')
-    
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('user', 'event', 'business', 'package', 'status')
-        }),
-        ('Booking Details', {
-            'fields': ('number_of_people', 'special_requests')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
 
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('booking', 'amount', 'payment_method', 'status', 'created_at')
+@admin.register(PackagePayment)
+class PackagePaymentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'booking', 'amount', 'payment_method', 'status', 'created_at')
     list_filter = ('status', 'payment_method', 'created_at')
-    search_fields = ('booking__user__email', 'transaction_id')
+    search_fields = ('booking__user__email', 'booking__package__name')
     readonly_fields = ('created_at',)
-    
-    fieldsets = (
-        ('Payment Information', {
-            'fields': ('booking', 'amount', 'payment_method', 'status')
-        }),
-        ('Transaction Details', {
-            'fields': ('transaction_id', 'payment_details')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at',)
-        }),
-    )
 
-@admin.register(BookingReview)
-class BookingReviewAdmin(admin.ModelAdmin):
-    list_display = ('booking', 'rating', 'title', 'helpful', 'reported')
-    list_filter = ('rating', 'reported')
-    search_fields = ('title', 'content')
-    readonly_fields = ('helpful', 'reported')
-    
-    fieldsets = (
-        ('Review Information', {
-            'fields': ('booking', 'rating', 'title', 'content')
-        }),
-        ('Status', {
-            'fields': ('helpful', 'reported')
-        }),
-    )
+@admin.register(PackageReview)
+class PackageReviewAdmin(admin.ModelAdmin):
+    list_display = ('id', 'booking', 'rating', 'title', 'helpful', 'reported', 'created_at')
+    list_filter = ('rating', 'reported', 'created_at')
+    search_fields = ('booking__user__email', 'booking__package__name', 'title', 'content')
+    readonly_fields = ('created_at',)

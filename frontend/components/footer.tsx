@@ -48,6 +48,8 @@ export function Footer() {
             </div>
           </div>
 
+          
+        {/* {part 2} */}
           <div>
             <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
             <ul className="space-y-2">

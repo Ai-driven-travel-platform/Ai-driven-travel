@@ -4,104 +4,115 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from .models import Booking, Payment, BookingReview
-from .serializers import (
-    BookingListSerializer, BookingCreateSerializer,
-    PaymentSerializer, BookingReviewSerializer
-)
+from .models import PackageBooking, PackagePayment, PackageReview
+from .serializers import PackageBookingSerializer, PackagePaymentSerializer, PackageReviewSerializer
 from .permissions import IsBookingOwner, IsPaymentOwner, IsReviewOwner
+from .services import StripeService
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-class BookingViewSet(viewsets.ModelViewSet):
-    serializer_class = BookingListSerializer
+class PackageBookingViewSet(viewsets.ModelViewSet):
+    serializer_class = PackageBookingSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
-            return Booking.objects.none()
-        return Booking.objects.filter(user=self.request.user)
-
-    def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return BookingCreateSerializer
-        return BookingListSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+            return PackageBooking.objects.none()
+        return PackageBooking.objects.filter(user=self.request.user)
 
     @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Create a new booking",
-        request_body=BookingCreateSerializer,
+        tags=['Package Bookings'],
+        operation_description="Create a new package booking",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['package', 'number_of_people'],
+            properties={
+                'package': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID of the package to book"
+                ),
+                'number_of_people': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    minimum=1,
+                    description="Number of people for the booking (minimum 1)"
+                ),
+                'special_requests': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Any special requests for the booking (optional)"
+                )
+            }
+        ),
         responses={
-            201: BookingCreateSerializer,
-            400: "Bad Request"
+            201: openapi.Response(
+                description="Package booking created successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'id': openapi.Schema(type=openapi.TYPE_STRING, format='uuid', description="Booking ID"),
+                        'package': openapi.Schema(type=openapi.TYPE_INTEGER, description="Package ID"),
+                        'number_of_people': openapi.Schema(type=openapi.TYPE_INTEGER, description="Number of people"),
+                        'special_requests': openapi.Schema(type=openapi.TYPE_STRING, description="Special requests"),
+                        'status': openapi.Schema(type=openapi.TYPE_STRING, description="Booking status")
+                    }
+                )
+            ),
+            400: "Bad Request - Invalid data provided",
+            401: "Unauthorized - Authentication required"
         }
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        booking = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="List all bookings",
+        tags=['Package Bookings'],
+        operation_description="List all package bookings for the authenticated user",
         responses={
-            200: BookingListSerializer(many=True)
+            200: openapi.Response(
+                description="List of package bookings",
+                schema=PackageBookingSerializer(many=True)
+            ),
+            401: "Unauthorized - Authentication required"
         }
     )
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Retrieve a booking",
+        tags=['Package Bookings'],
+        operation_description="Retrieve a specific package booking",
         responses={
-            200: BookingListSerializer,
-            404: "Not Found"
+            200: openapi.Response(
+                description="Package booking details",
+                schema=PackageBookingSerializer
+            ),
+            404: "Not Found - Booking does not exist",
+            401: "Unauthorized - Authentication required"
         }
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Update a booking",
-        request_body=BookingCreateSerializer,
-        responses={
-            200: BookingCreateSerializer,
-            400: "Bad Request",
-            404: "Not Found"
-        }
-    )
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Delete a booking",
-        responses={
-            204: "No Content",
-            404: "Not Found"
-        }
-    )
-    def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Cancel a booking",
+        tags=['Package Bookings'],
+        operation_description="Cancel a package booking",
         responses={
             200: openapi.Response(
-                description="Booking cancelled successfully",
+                description="Package booking cancelled successfully",
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'status': openapi.Schema(type=openapi.TYPE_STRING)
+                        'status': openapi.Schema(type=openapi.TYPE_STRING, description="New booking status")
                     }
                 )
             ),
-            400: "Bad Request",
-            404: "Not Found"
+            400: "Bad Request - Booking is already cancelled",
+            404: "Not Found - Booking does not exist",
+            401: "Unauthorized - Authentication required"
         }
     )
     @action(detail=True, methods=['post'])
@@ -116,6 +127,24 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking.save()
         return Response({'status': 'cancelled'})
 
+    @swagger_auto_schema(
+        tags=['Package Bookings'],
+        operation_description="Mark a package booking as completed",
+        responses={
+            200: openapi.Response(
+                description="Package booking marked as completed",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'status': openapi.Schema(type=openapi.TYPE_STRING, description="New booking status")
+                    }
+                )
+            ),
+            400: "Bad Request - Only confirmed bookings can be completed",
+            404: "Not Found - Booking does not exist",
+            401: "Unauthorized - Authentication required"
+        }
+    )
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         booking = self.get_object()
@@ -129,116 +158,149 @@ class BookingViewSet(viewsets.ModelViewSet):
         return Response({'status': 'completed'})
 
     @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="List upcoming bookings",
+        tags=['Package Bookings'],
+        operation_description="List upcoming package bookings",
         responses={
-            200: BookingListSerializer(many=True)
+            200: openapi.Response(
+                description="List of upcoming package bookings",
+                schema=PackageBookingSerializer(many=True)
+            ),
+            401: "Unauthorized - Authentication required"
         }
     )
     @action(detail=False, methods=['get'])
     def upcoming(self, request):
         queryset = self.get_queryset().filter(
             status='confirmed',
-            event__start_date__gt=timezone.now()
+            package__departure__gt=timezone.now()
         )
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-class PaymentViewSet(viewsets.ModelViewSet):
-    serializer_class = PaymentSerializer
+class PackagePaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = PackagePaymentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
-            return Payment.objects.none()
-        return Payment.objects.filter(booking__user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(booking__user=self.request.user)
+            return PackagePayment.objects.none()
+        return PackagePayment.objects.filter(booking__user=self.request.user)
 
     @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Create a payment",
-        request_body=PaymentSerializer,
-        responses={
-            201: PaymentSerializer,
-            400: "Bad Request"
-        }
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="List all payments",
-        responses={
-            200: PaymentSerializer(many=True)
-        }
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Get payment history",
-        responses={
-            200: PaymentSerializer(many=True)
-        }
-    )
-    @action(detail=False, methods=['get'])
-    def history(self, request):
-        queryset = self.get_queryset().order_by('-created_at')
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-class BookingReviewViewSet(viewsets.ModelViewSet):
-    serializer_class = BookingReviewSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
-            return BookingReview.objects.none()
-        return BookingReview.objects.filter(booking__user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(booking__user=self.request.user)
-
-    @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Create a booking review",
-        request_body=BookingReviewSerializer,
-        responses={
-            201: BookingReviewSerializer,
-            400: "Bad Request"
-        }
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="List all booking reviews",
-        responses={
-            200: BookingReviewSerializer(many=True)
-        }
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Mark review as helpful",
+        tags=['Package Payments'],
+        operation_description="Create a Stripe payment intent for a package booking",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['booking_id', 'amount'],
+            properties={
+                'booking_id': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format='uuid',
+                    description="The UUID of your package booking"
+                ),
+                'amount': openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="The amount to charge in the specified currency (e.g., 100.00 for $100)"
+                ),
+                'currency': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    default='usd',
+                    description="The currency code (default: usd)"
+                )
+            }
+        ),
         responses={
             200: openapi.Response(
-                description="Review marked as helpful",
+                description="Stripe payment intent created successfully",
+                schema=PackagePaymentSerializer
+            ),
+            400: "Bad Request - Invalid data provided",
+            404: "Not Found - Package booking does not exist",
+            401: "Unauthorized - Authentication required"
+        }
+    )
+    @action(detail=False, methods=['post'])
+    def create_stripe_payment(self, request):
+        booking_id = request.data.get('booking_id')
+        amount = request.data.get('amount')
+        currency = request.data.get('currency', 'usd')
+
+        if not booking_id or not amount:
+            return Response(
+                {'error': 'booking_id and amount are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        booking = get_object_or_404(PackageBooking, id=booking_id, user=request.user)
+
+        try:
+            # Create Stripe PaymentIntent
+            intent = StripeService.create_payment_intent(
+                amount=amount,
+                currency=currency,
+                metadata={'booking_id': str(booking.id)}
+            )
+
+            # Create Payment record
+            payment = PackagePayment.objects.create(
+                booking=booking,
+                amount=amount,
+                payment_method='stripe',
+                status='pending',
+                stripe_payment_intent_id=intent.id,
+                stripe_client_secret=intent.client_secret,
+                currency=currency
+            )
+
+            serializer = self.get_serializer(payment)
+            return Response(serializer.data)
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+class PackageReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = PackageReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PackageReview.objects.none()
+        return PackageReview.objects.filter(booking__user=self.request.user)
+
+    @swagger_auto_schema(
+        tags=['Package Reviews'],
+        operation_description="Create a new package review",
+        request_body=PackageReviewSerializer,
+        responses={
+            201: openapi.Response(
+                description="Package review created successfully",
+                schema=PackageReviewSerializer
+            ),
+            400: "Bad Request - Invalid data provided",
+            401: "Unauthorized - Authentication required"
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        tags=['Package Reviews'],
+        operation_description="Mark a package review as helpful",
+        responses={
+            200: openapi.Response(
+                description="Package review marked as helpful",
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'helpful': openapi.Schema(type=openapi.TYPE_INTEGER)
+                        'helpful': openapi.Schema(type=openapi.TYPE_INTEGER, description="Number of helpful votes")
                     }
                 )
             ),
-            404: "Not Found"
+            404: "Not Found - Review does not exist",
+            401: "Unauthorized - Authentication required"
         }
     )
     @action(detail=True, methods=['post'])
@@ -249,19 +311,20 @@ class BookingReviewViewSet(viewsets.ModelViewSet):
         return Response({'helpful': review.helpful})
 
     @swagger_auto_schema(
-        tags=['Booking'],
-        operation_description="Report a review",
+        tags=['Package Reviews'],
+        operation_description="Report a package review",
         responses={
             200: openapi.Response(
-                description="Review reported successfully",
+                description="Package review reported successfully",
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
-                        'message': openapi.Schema(type=openapi.TYPE_STRING)
+                        'message': openapi.Schema(type=openapi.TYPE_STRING, description="Success message")
                     }
                 )
             ),
-            404: "Not Found"
+            404: "Not Found - Review does not exist",
+            401: "Unauthorized - Authentication required"
         }
     )
     @action(detail=True, methods=['post'])
