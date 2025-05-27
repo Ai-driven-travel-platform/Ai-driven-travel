@@ -807,13 +807,10 @@ export default function PackageDetailPage({ params }: { params: Promise<{ id: st
                     </p>
                   </div>
                 ) : (
-                  <Button
-                    onClick={handleBookNow}
-                    disabled={!selectedDate}
-                    className="w-full bg-[#E91E63] hover:bg-[#D81B60] text-white py-3 rounded-md"
-                  >
-                    Book Now
-                  </Button>
+                  <div className="w-full bg-[#E91E63] flex items-center justify-center hover:bg-[#D81B60] text-white py-3 rounded-md">
+                    <a href="https://checkout.chapa.co/checkout/payment/6o8Oye0nma1ZVxN6eTh1Ve5dn6nZfpRoITvb7nJp6KSZd">Book Now</a>
+                 
+                  </div>
                 )}
 
                 <div className="flex justify-between mt-6">
